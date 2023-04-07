@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/ohzqq/digi/db"
 	"github.com/spf13/cobra"
 )
 
@@ -11,7 +10,9 @@ var lsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "A brief description of your command",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("ls called")
+		d := db.Connect()
+		println(d.Path)
+		d.Root()
 	},
 }
 
