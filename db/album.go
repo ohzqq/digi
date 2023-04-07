@@ -62,6 +62,13 @@ func Collections() []Collection {
 }
 
 func (r *Collection) Albums() Albums {
+	return GetAlbums(r.ID)
+}
+
+//func (a Albums) Images() []Image {
+//}
+
+func GetAlbums(ids ...int) Albums {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
@@ -72,8 +79,10 @@ func (r *Collection) Albums() Albums {
 		"Albums.relativePath as path",
 	).
 		From("Albums").
-		InnerJoin(`AlbumRoots ON AlbumRoots.id = Albums.albumRoot`).
-		Where(sq.Eq{"albumRoot": r.ID})
+		InnerJoin(`AlbumRoots ON AlbumRoots.id = Albums.albumRoot`)
+	if len(ids) > 0 {
+		sel = sel.Where(sq.Eq{"albumRoot": ids})
+	}
 	stmt, args := toSql(sel)
 
 	rows, err := images.DB.Queryx(stmt, args...)
