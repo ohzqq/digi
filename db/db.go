@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 
 	sq "github.com/Masterminds/squirrel"
@@ -81,6 +83,71 @@ func Images() []digi.Image {
 	var albums []digi.Image
 	for rows.Next() {
 		var m digi.Image
+		err := rows.StructScan(&m)
+		if err != nil {
+			panic(err)
+		}
+		albums = append(albums, m)
+	}
+
+	return albums
+}
+
+const tagsGt = `Tags.id > 21`
+const tagsForImg = `Tags.Id IN (
+	SELECT tagid
+	FROM ImageTags
+	WHERE imageid IN (%s)
+)`
+
+func tagsForImgSql(id ...int) string {
+	var ids []string
+	for _, i := range id {
+		ids = append(ids, strconv.Itoa(i))
+	}
+	//sel := sq.Select("tagid").
+	//From("ImageTags").
+	//Where(sq.Eq{"imageid": id})
+	//sql, args, err := sel.ToSql()
+	//if err != nil {
+	//log.Fatal(err)
+	//}
+	//fmt.Println(sql)
+	//fmt.Println(args)
+	return fmt.Sprintf(tagsForImg, strings.Join(ids, ","))
+}
+
+func tagsWhere(id ...int) string {
+	if len(id) > 0 {
+		return fmt.Sprintf("%s AND %s", tagsForImgSql(id...), tagsGt)
+	}
+	return tagsGt
+}
+
+func Tags(ids ...int) []digi.Tag {
+	images.mtx.Lock()
+	defer images.mtx.Unlock()
+
+	sel := sq.Select(
+		"id",
+		"Tags.pid as parent",
+		"Tags.name as name",
+	).
+		From("Tags").
+		Where(tagsWhere(ids...))
+	stmt, args := toSql(sel)
+
+	rows, err := images.DB.Queryx(stmt, args...)
+	if err != nil {
+		fmt.Println(stmt)
+		log.Fatalf("error %v\n", err)
+	}
+	defer rows.Close()
+	images.DB.Unsafe()
+
+	var albums []digi.Tag
+	for rows.Next() {
+		var m digi.Tag
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)

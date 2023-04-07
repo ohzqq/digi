@@ -1,4 +1,4 @@
-package digi
+package db
 
 type AlbumRoot struct {
 	ID   int
@@ -21,4 +21,10 @@ type Image struct {
 	Root  string
 	Path  string `db:"path"`
 	Name  string `db:"name"`
+}
+
+type Tag struct {
+	ID     int
+	Parent int
+	Name   string
 }
