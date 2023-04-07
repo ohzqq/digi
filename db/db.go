@@ -22,8 +22,8 @@ type Digikam struct {
 }
 
 var (
-	images *sqlx.DB
-	thumbs *sqlx.DB
+	images Digikam
+	thumbs Digikam
 )
 
 const (
@@ -32,21 +32,19 @@ const (
 	metaDB       = `digikam4.db`
 )
 
-func Connect() Digikam {
-	db := Digikam{
+func Connect() {
+	images = Digikam{
 		Path: filepath.Join(viper.GetString("db"), metaDB),
 	}
-	if ok := FileExist(db.Path); !ok {
+	if ok := FileExist(images.Path); !ok {
 		log.Fatalf("db not found")
 	}
 
-	database, err := sqlx.Open("sqlite3", sqlitePrefix+db.Path+sqliteOpts)
+	database, err := sqlx.Open("sqlite3", sqlitePrefix+images.Path+sqliteOpts)
 	if err != nil {
 		log.Fatalf("database connection %v failed\n", err)
 	}
-	images = database
-	db.DB = database
-	return db
+	images.DB = database
 }
 
 func FileExist(path string) bool {
@@ -56,9 +54,9 @@ func FileExist(path string) bool {
 	return true
 }
 
-func (db Digikam) Images() {
-	db.mtx.Lock()
-	defer db.mtx.Unlock()
+func Images() []digi.Image {
+	images.mtx.Lock()
+	defer images.mtx.Unlock()
 
 	sel := sq.Select(
 		"Images.id",
@@ -72,13 +70,13 @@ func (db Digikam) Images() {
 		InnerJoin(`AlbumRoots ON AlbumRoots.id = Albums.albumRoot`)
 	stmt, args := toSql(sel)
 
-	rows, err := db.DB.Queryx(stmt, args...)
+	rows, err := images.DB.Queryx(stmt, args...)
 	if err != nil {
 		fmt.Println(stmt)
 		log.Fatalf("error %v\n", err)
 	}
 	defer rows.Close()
-	db.DB.Unsafe()
+	images.DB.Unsafe()
 
 	var albums []digi.Image
 	for rows.Next() {
@@ -90,9 +88,75 @@ func (db Digikam) Images() {
 		albums = append(albums, m)
 	}
 
-	fmt.Printf("%+V\n", albums)
+	return albums
 }
 
+func RootAlbums() []digi.AlbumRoot {
+	images.mtx.Lock()
+	defer images.mtx.Unlock()
+
+	sel := sq.Select(
+		"id",
+		"AlbumRoots.specificPath as path",
+		"AlbumRoots.label as name",
+	).
+		From("AlbumRoots")
+	stmt, args := toSql(sel)
+
+	rows, err := images.DB.Queryx(stmt, args...)
+	if err != nil {
+		fmt.Println(stmt)
+		log.Fatalf("error %v\n", err)
+	}
+	defer rows.Close()
+	images.DB.Unsafe()
+
+	var albums []digi.AlbumRoot
+	for rows.Next() {
+		var m digi.AlbumRoot
+		err := rows.StructScan(&m)
+		if err != nil {
+			panic(err)
+		}
+		albums = append(albums, m)
+	}
+
+	return albums
+}
+
+func Albums() []digi.Album {
+	images.mtx.Lock()
+	defer images.mtx.Unlock()
+
+	sel := sq.Select(
+		"AlbumRoots.specificPath as base",
+		"AlbumRoots.label as parent",
+		"Albums.id",
+		"Albums.relativePath as path",
+	).
+		From("Albums").
+		InnerJoin(`AlbumRoots ON AlbumRoots.id = Albums.albumRoot`)
+	stmt, args := toSql(sel)
+
+	rows, err := images.DB.Queryx(stmt, args...)
+	if err != nil {
+		fmt.Println(stmt)
+		log.Fatalf("error %v\n", err)
+	}
+	defer rows.Close()
+	images.DB.Unsafe()
+
+	var albums []digi.Album
+	for rows.Next() {
+		var m digi.Album
+		err := rows.StructScan(&m)
+		if err != nil {
+			panic(err)
+		}
+		albums = append(albums, m)
+	}
+	return albums
+}
 func toSql(sel sq.SelectBuilder) (string, []any) {
 	stmt, args, err := sel.ToSql()
 	if err != nil {

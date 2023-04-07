@@ -12,9 +12,7 @@ var lsCmd = &cobra.Command{
 	Use:   "ls",
 	Short: "A brief description of your command",
 	Run: func(cmd *cobra.Command, args []string) {
-		d := db.Connect()
-		println(d.Path)
-		r := d.Root()
+		r := db.RootAlbums()
 		fmt.Printf("%+V\n", r)
 	},
 }

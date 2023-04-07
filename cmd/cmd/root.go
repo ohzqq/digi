@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/ohzqq/digi/db"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -65,4 +66,5 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err != nil {
 		fmt.Fprintln(os.Stderr, "config file not found", viper.ConfigFileUsed())
 	}
+	db.Connect()
 }
