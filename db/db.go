@@ -13,7 +13,6 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/ohzqq/digi"
 	"github.com/spf13/viper"
 )
 
@@ -56,7 +55,7 @@ func FileExist(path string) bool {
 	return true
 }
 
-func Images() []digi.Image {
+func Images() []Image {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
@@ -80,9 +79,9 @@ func Images() []digi.Image {
 	defer rows.Close()
 	images.DB.Unsafe()
 
-	var albums []digi.Image
+	var albums []Image
 	for rows.Next() {
-		var m digi.Image
+		var m Image
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
@@ -124,7 +123,7 @@ func tagsWhere(id ...int) string {
 	return tagsGt
 }
 
-func Tags(ids ...int) []digi.Tag {
+func Tags(ids ...int) []Tag {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
@@ -145,9 +144,9 @@ func Tags(ids ...int) []digi.Tag {
 	defer rows.Close()
 	images.DB.Unsafe()
 
-	var albums []digi.Tag
+	var albums []Tag
 	for rows.Next() {
-		var m digi.Tag
+		var m Tag
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
@@ -158,7 +157,7 @@ func Tags(ids ...int) []digi.Tag {
 	return albums
 }
 
-func RootAlbums() []digi.AlbumRoot {
+func RootAlbums() []AlbumRoot {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
@@ -178,9 +177,9 @@ func RootAlbums() []digi.AlbumRoot {
 	defer rows.Close()
 	images.DB.Unsafe()
 
-	var albums []digi.AlbumRoot
+	var albums []AlbumRoot
 	for rows.Next() {
-		var m digi.AlbumRoot
+		var m AlbumRoot
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
@@ -191,7 +190,7 @@ func RootAlbums() []digi.AlbumRoot {
 	return albums
 }
 
-func Albums() []digi.Album {
+func Albums() []Album {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
@@ -213,9 +212,9 @@ func Albums() []digi.Album {
 	defer rows.Close()
 	images.DB.Unsafe()
 
-	var albums []digi.Album
+	var albums []Album
 	for rows.Next() {
-		var m digi.Album
+		var m Album
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
