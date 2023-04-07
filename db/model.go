@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 
@@ -32,51 +31,15 @@ type Tags struct {
 }
 
 func GetImages(a ...int) Images {
-	images.mtx.Lock()
-	defer images.mtx.Unlock()
-
-	sel := sq.Select(
-		"Images.id",
-		"Albums.id as album",
-		"AlbumRoots.label as root",
-		"AlbumRoots.specificPath ||	Albums.relativePath as path",
-		"Images.name",
-	).
-		From("Images").
-		InnerJoin(`Albums ON Albums.id = Images.album`).
-		InnerJoin(`AlbumRoots ON AlbumRoots.id = Albums.albumRoot`)
-
+	sel := selectImages()
 	if len(a) > 0 {
 		sel = sel.Where(sq.Eq{"Albums.id": a})
 	}
 
-	stmt, args := toSql(sel)
-
-	rows, err := images.DB.Queryx(stmt, args...)
-	if err != nil {
-		fmt.Println(stmt)
-		log.Fatalf("error %v\n", err)
-	}
-	defer rows.Close()
-	images.DB.Unsafe()
-
-	var albums Images
-	for rows.Next() {
-		var m Image
-		err := rows.StructScan(&m)
-		if err != nil {
-			panic(err)
-		}
-		albums.Img = append(albums.Img, m)
-	}
-
-	return albums
+	return images.GetImages(sel)
 }
 
 func GetTags(ids ...int) Tags {
-	images.mtx.Lock()
-	defer images.mtx.Unlock()
-
 	sel := sq.Select(
 		"id",
 		"Tags.pid as parent",
@@ -84,28 +47,7 @@ func GetTags(ids ...int) Tags {
 	).
 		From("Tags").
 		Where(tagsWhere(ids...))
-	stmt, args := toSql(sel)
-	//fmt.Println(stmt)
-
-	rows, err := images.DB.Queryx(stmt, args...)
-	if err != nil {
-		fmt.Println(stmt)
-		log.Fatalf("error %v\n", err)
-	}
-	defer rows.Close()
-	images.DB.Unsafe()
-
-	var albums Tags
-	for rows.Next() {
-		var m Tag
-		err := rows.StructScan(&m)
-		if err != nil {
-			panic(err)
-		}
-		albums.Tags = append(albums.Tags, m)
-	}
-
-	return albums
+	return images.GetTags(sel)
 }
 
 const tagsGt = `Tags.id > 21`
@@ -137,4 +79,19 @@ func tagsWhere(id ...int) string {
 		return fmt.Sprintf("%s AND %s", tagsForImgSql(id...), tagsGt)
 	}
 	return tagsGt
+}
+
+func selectImages() sq.SelectBuilder {
+	sel := sq.Select(
+		"Images.id",
+		"Albums.id as album",
+		"AlbumRoots.label as root",
+		"AlbumRoots.specificPath ||	Albums.relativePath as path",
+		"Images.name",
+	).
+		From("Images").
+		InnerJoin(`Albums ON Albums.id = Images.album`).
+		InnerJoin(`AlbumRoots ON AlbumRoots.id = Albums.albumRoot`)
+
+	return sel
 }

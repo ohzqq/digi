@@ -3,7 +3,6 @@ package db
 import (
 	"fmt"
 	"log"
-	"path/filepath"
 
 	sq "github.com/Masterminds/squirrel"
 )
@@ -62,45 +61,18 @@ func Collections() []Collection {
 }
 
 func (r *Collection) Albums() Albums {
-	images.mtx.Lock()
-	defer images.mtx.Unlock()
-
 	sel := selectAlbums()
 	sel = sel.Where(sq.Eq{"albumRoot": r.ID})
 
-	stmt, args := toSql(sel)
-	fmt.Println(stmt)
-
-	rows, err := images.DB.Queryx(stmt, args...)
-	if err != nil {
-		fmt.Println(stmt)
-		log.Fatalf("error %v\n", err)
-	}
-	defer rows.Close()
-
-	var albums Albums
-	for rows.Next() {
-		var m Album
-		err := rows.StructScan(&m)
-		if err != nil {
-			panic(err)
-		}
-		albums.Names = append(albums.Names, filepath.Base(m.Path))
-		albums.Albums = append(albums.Albums, m)
-	}
-	return albums
+	return images.GetAlbums(sel)
 }
 
-func selectAlbums() sq.SelectBuilder {
-	sel := sq.Select(
-		"AlbumRoots.specificPath as base",
-		"AlbumRoots.label as parent",
-		"Albums.id",
-		"Albums.relativePath as path",
-	).
-		From("Albums").
-		InnerJoin(`AlbumRoots ON AlbumRoots.id = Albums.albumRoot`)
-	return sel
+func GetAlbums(ids ...int) Albums {
+	sel := selectAlbums()
+	if len(ids) > 0 {
+		sel = sel.Where(sq.Eq{"Albums.id": ids})
+	}
+	return images.GetAlbums(sel)
 }
 
 func (a Albums) Images() Images {
@@ -119,13 +91,14 @@ func (a Albums) Tags() Tags {
 	return GetTags(ids...)
 }
 
-func GetAlbums(ids ...int) Albums {
-	images.mtx.Lock()
-	defer images.mtx.Unlock()
-
-	sel := selectAlbums()
-	if len(ids) > 0 {
-		sel = sel.Where(sq.Eq{"Albums.id": ids})
-	}
-	return images.GetAlbums(sel)
+func selectAlbums() sq.SelectBuilder {
+	sel := sq.Select(
+		"AlbumRoots.specificPath as base",
+		"AlbumRoots.label as parent",
+		"Albums.id",
+		"Albums.relativePath as path",
+	).
+		From("Albums").
+		InnerJoin(`AlbumRoots ON AlbumRoots.id = Albums.albumRoot`)
+	return sel
 }

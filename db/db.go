@@ -47,8 +47,11 @@ func Connect() {
 }
 
 func (d Digikam) GetAlbums(sel sq.SelectBuilder) Albums {
+	images.mtx.Lock()
+	defer images.mtx.Unlock()
+
 	stmt, args := toSql(sel)
-	fmt.Println(stmt)
+	//fmt.Println(stmt)
 
 	rows, err := images.DB.Queryx(stmt, args...)
 	if err != nil {
@@ -68,6 +71,61 @@ func (d Digikam) GetAlbums(sel sq.SelectBuilder) Albums {
 		albums.Albums = append(albums.Albums, m)
 	}
 	return albums
+}
+
+func (d Digikam) GetImages(sel sq.SelectBuilder) Images {
+	images.mtx.Lock()
+	defer images.mtx.Unlock()
+
+	stmt, args := toSql(sel)
+
+	rows, err := images.DB.Queryx(stmt, args...)
+	if err != nil {
+		fmt.Println(stmt)
+		log.Fatalf("error %v\n", err)
+	}
+	defer rows.Close()
+	images.DB.Unsafe()
+
+	var imgs Images
+	for rows.Next() {
+		var m Image
+		err := rows.StructScan(&m)
+		if err != nil {
+			panic(err)
+		}
+		imgs.Img = append(imgs.Img, m)
+	}
+
+	return imgs
+}
+
+func (d Digikam) GetTags(sel sq.SelectBuilder) Tags {
+	images.mtx.Lock()
+	defer images.mtx.Unlock()
+
+	stmt, args := toSql(sel)
+	//fmt.Println(stmt)
+
+	rows, err := images.DB.Queryx(stmt, args...)
+	if err != nil {
+		fmt.Println(stmt)
+		log.Fatalf("error %v\n", err)
+	}
+	defer rows.Close()
+	images.DB.Unsafe()
+
+	var tags Tags
+	for rows.Next() {
+		var m Tag
+		err := rows.StructScan(&m)
+		if err != nil {
+			panic(err)
+		}
+		tags.Tags = append(tags.Tags, m)
+	}
+
+	return tags
 }
 
 func FileExist(path string) bool {
