@@ -62,28 +62,14 @@ func Collections() []Collection {
 }
 
 func (r *Collection) Albums() Albums {
-	return GetAlbums(r.ID)
-}
-
-//func (a Albums) Images() []Image {
-//}
-
-func GetAlbums(ids ...int) Albums {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
-	sel := sq.Select(
-		"AlbumRoots.specificPath as base",
-		"AlbumRoots.label as parent",
-		"Albums.id",
-		"Albums.relativePath as path",
-	).
-		From("Albums").
-		InnerJoin(`AlbumRoots ON AlbumRoots.id = Albums.albumRoot`)
-	if len(ids) > 0 {
-		sel = sel.Where(sq.Eq{"albumRoot": ids})
-	}
+	sel := selectAlbums()
+	sel = sel.Where(sq.Eq{"albumRoot": r.ID})
+
 	stmt, args := toSql(sel)
+	fmt.Println(stmt)
 
 	rows, err := images.DB.Queryx(stmt, args...)
 	if err != nil {
@@ -103,4 +89,43 @@ func GetAlbums(ids ...int) Albums {
 		albums.Albums = append(albums.Albums, m)
 	}
 	return albums
+}
+
+func selectAlbums() sq.SelectBuilder {
+	sel := sq.Select(
+		"AlbumRoots.specificPath as base",
+		"AlbumRoots.label as parent",
+		"Albums.id",
+		"Albums.relativePath as path",
+	).
+		From("Albums").
+		InnerJoin(`AlbumRoots ON AlbumRoots.id = Albums.albumRoot`)
+	return sel
+}
+
+func (a Albums) Images() Images {
+	var ids []int
+	for _, a := range a.Albums {
+		ids = append(ids, a.ID)
+	}
+	return GetImages(ids...)
+}
+
+func (a Albums) Tags() Tags {
+	var ids []int
+	for _, img := range a.Images().Img {
+		ids = append(ids, img.ID)
+	}
+	return GetTags(ids...)
+}
+
+func GetAlbums(ids ...int) Albums {
+	images.mtx.Lock()
+	defer images.mtx.Unlock()
+
+	sel := selectAlbums()
+	if len(ids) > 0 {
+		sel = sel.Where(sq.Eq{"Albums.id": ids})
+	}
+	return images.GetAlbums(sel)
 }

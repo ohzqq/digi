@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/ohzqq/digi/db"
 	"github.com/spf13/cobra"
 )
@@ -13,9 +11,10 @@ var lsCmd = &cobra.Command{
 	Short: "A brief description of your command",
 	Run: func(cmd *cobra.Command, args []string) {
 		//r := db.Tags(16760, 17761)
-		r := db.GetImages(10)
-		for _, a := range r.Img {
-			fmt.Printf("%+V\n", a)
+		r := db.GetAlbums(393, 394)
+		for _, a := range r.Tags().Tags {
+			//fmt.Printf("%+V\n", a)
+			println(a.Name)
 		}
 	},
 }

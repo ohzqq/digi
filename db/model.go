@@ -27,6 +27,10 @@ type Images struct {
 	Img []Image
 }
 
+type Tags struct {
+	Tags []Tag
+}
+
 func GetImages(a ...int) Images {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
@@ -69,7 +73,7 @@ func GetImages(a ...int) Images {
 	return albums
 }
 
-func Tags(ids ...int) []Tag {
+func GetTags(ids ...int) Tags {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
@@ -81,6 +85,7 @@ func Tags(ids ...int) []Tag {
 		From("Tags").
 		Where(tagsWhere(ids...))
 	stmt, args := toSql(sel)
+	//fmt.Println(stmt)
 
 	rows, err := images.DB.Queryx(stmt, args...)
 	if err != nil {
@@ -90,14 +95,14 @@ func Tags(ids ...int) []Tag {
 	defer rows.Close()
 	images.DB.Unsafe()
 
-	var albums []Tag
+	var albums Tags
 	for rows.Next() {
 		var m Tag
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
 		}
-		albums = append(albums, m)
+		albums.Tags = append(albums.Tags, m)
 	}
 
 	return albums

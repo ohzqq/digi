@@ -2,6 +2,7 @@ package db
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -43,6 +44,30 @@ func Connect() {
 		log.Fatalf("database connection %v failed\n", err)
 	}
 	images.DB = database
+}
+
+func (d Digikam) GetAlbums(sel sq.SelectBuilder) Albums {
+	stmt, args := toSql(sel)
+	fmt.Println(stmt)
+
+	rows, err := images.DB.Queryx(stmt, args...)
+	if err != nil {
+		fmt.Println(stmt)
+		log.Fatalf("error %v\n", err)
+	}
+	defer rows.Close()
+
+	var albums Albums
+	for rows.Next() {
+		var m Album
+		err := rows.StructScan(&m)
+		if err != nil {
+			panic(err)
+		}
+		albums.Names = append(albums.Names, filepath.Base(m.Path))
+		albums.Albums = append(albums.Albums, m)
+	}
+	return albums
 }
 
 func FileExist(path string) bool {
