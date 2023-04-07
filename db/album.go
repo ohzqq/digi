@@ -5,24 +5,10 @@ import (
 	"log"
 
 	sq "github.com/Masterminds/squirrel"
+	"github.com/ohzqq/digi"
 )
 
-type AlbumRoot struct {
-	ID   int
-	Path string `db:"path"`
-	Name string
-}
-
-type Album struct {
-	ID        int
-	AlbumRoot int `db:"-"`
-	Parent    string
-	Path      string `db:"path"`
-	Label     string `db:"label"`
-	Base      string `db:"base"`
-}
-
-func (db Digikam) Root() []AlbumRoot {
+func (db Digikam) Root() []digi.AlbumRoot {
 	db.mtx.Lock()
 	defer db.mtx.Unlock()
 
@@ -42,9 +28,9 @@ func (db Digikam) Root() []AlbumRoot {
 	defer rows.Close()
 	db.DB.Unsafe()
 
-	var albums []AlbumRoot
+	var albums []digi.AlbumRoot
 	for rows.Next() {
-		var m AlbumRoot
+		var m digi.AlbumRoot
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
@@ -70,9 +56,9 @@ func (db Digikam) Albums() {
 	defer rows.Close()
 	db.DB.Unsafe()
 
-	var albums []Album
+	var albums []digi.Album
 	for rows.Next() {
-		var m Album
+		var m digi.Album
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/ohzqq/digi/db"
 	"github.com/spf13/cobra"
 )
@@ -12,7 +14,8 @@ var lsCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		d := db.Connect()
 		println(d.Path)
-		d.Root()
+		r := d.Root()
+		fmt.Printf("%+V\n", r)
 	},
 }
 

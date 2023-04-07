@@ -11,16 +11,9 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/ohzqq/digi"
 	"github.com/spf13/viper"
 )
-
-type Image struct {
-	ID    int
-	Album int `db:"album"`
-	Root  string
-	Path  string `db:"path"`
-	Name  string `db:"name"`
-}
 
 type Digikam struct {
 	DB   *sqlx.DB
@@ -87,9 +80,9 @@ func (db Digikam) Images() {
 	defer rows.Close()
 	db.DB.Unsafe()
 
-	var albums []Image
+	var albums []digi.Image
 	for rows.Next() {
-		var m Image
+		var m digi.Image
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
