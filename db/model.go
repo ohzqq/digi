@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -20,15 +21,27 @@ type Tag struct {
 	ID     int
 	Parent int
 	Name   string
-	Images string
+	Img    string `db:"images"`
 }
 
-type Images struct {
-	Img []Image
-}
+type Images []Image
 
-type Tags struct {
-	Tags []Tag
+type Tags []Tag
+
+func (t Tag) Images() Images {
+	if img := t.Img; img != "" {
+		var ids []int
+		for _, i := range strings.Split(img, ",") {
+			id, err := strconv.Atoi(i)
+			if err != nil {
+				log.Fatal(err)
+			}
+			ids = append(ids, id)
+		}
+		sel := selectImages().Where(sq.Eq{"Images.id": ids})
+		return images.GetImages(sel)
+	}
+	return Images{}
 }
 
 func GetImagesByAlbum(a ...int) Images {
@@ -60,15 +73,6 @@ const tagsForImg = `Tags.Id IN (
 const whereImgId = `imageid IN (%s)`
 
 func tagsForImgSql(id ...int) string {
-	//sel := sq.Select("tagid").
-	//From("ImageTags").
-	//Where(sq.Eq{"imageid": id})
-	//sql, args, err := sel.ToSql()
-	//if err != nil {
-	//log.Fatal(err)
-	//}
-	//fmt.Println(sql)
-	//fmt.Println(args)
 	return fmt.Sprintf(tagsForImg, joinIDs(id))
 }
 

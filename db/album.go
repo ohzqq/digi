@@ -8,9 +8,11 @@ import (
 )
 
 type Collection struct {
-	ID   int
-	Path string `db:"path"`
-	Name string
+	ID         int
+	Path       string `db:"path"`
+	Name       string
+	Albums     []Album
+	AlbumNames []string
 }
 
 type Album struct {
@@ -60,22 +62,29 @@ func Collections() []Collection {
 	return albums
 }
 
-func (r *Collection) Albums() Albums {
+func (r *Collection) ListAlbums() *Collection {
 	sel := selectAlbums()
 	sel = sel.Where(sq.Eq{"albumRoot": r.ID})
 
-	return images.GetAlbums(sel)
+	albums, names := images.GetAlbums(sel)
+	r.Albums = albums
+	r.AlbumNames = names
+	return r
 }
 
-func GetAlbums(ids ...int) Albums {
+func GetAlbumsById(ids ...int) Collection {
 	sel := selectAlbums()
 	if len(ids) > 0 {
 		sel = sel.Where(sq.Eq{"Albums.id": ids})
 	}
-	return images.GetAlbums(sel)
+	albums, names := images.GetAlbums(sel)
+	return Collection{
+		Albums:     albums,
+		AlbumNames: names,
+	}
 }
 
-func (a Albums) Images() Images {
+func (a Collection) Images() Images {
 	var ids []int
 	for _, a := range a.Albums {
 		ids = append(ids, a.ID)
@@ -83,9 +92,9 @@ func (a Albums) Images() Images {
 	return GetImagesByAlbum(ids...)
 }
 
-func (a Albums) Tags() Tags {
+func (a Collection) Tags() Tags {
 	var ids []int
-	for _, img := range a.Images().Img {
+	for _, img := range a.Images() {
 		ids = append(ids, img.ID)
 	}
 	//return GetTagsByImage(ids...)

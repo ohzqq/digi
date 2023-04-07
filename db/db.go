@@ -46,7 +46,7 @@ func Connect() {
 	images.DB = database
 }
 
-func (d Digikam) GetAlbums(sel sq.SelectBuilder) Albums {
+func (d Digikam) GetAlbums(sel sq.SelectBuilder) ([]Album, []string) {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
@@ -60,17 +60,18 @@ func (d Digikam) GetAlbums(sel sq.SelectBuilder) Albums {
 	}
 	defer rows.Close()
 
-	var albums Albums
+	var albums []Album
+	var names []string
 	for rows.Next() {
 		var m Album
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
 		}
-		albums.Names = append(albums.Names, filepath.Base(m.Path))
-		albums.Albums = append(albums.Albums, m)
+		names = append(names, filepath.Base(m.Path))
+		albums = append(albums, m)
 	}
-	return albums
+	return albums, names
 }
 
 func (d Digikam) GetImages(sel sq.SelectBuilder) Images {
@@ -94,7 +95,7 @@ func (d Digikam) GetImages(sel sq.SelectBuilder) Images {
 		if err != nil {
 			panic(err)
 		}
-		imgs.Img = append(imgs.Img, m)
+		imgs = append(imgs, m)
 	}
 
 	return imgs
@@ -105,7 +106,7 @@ func (d Digikam) GetTags(sel sq.SelectBuilder) Tags {
 	defer images.mtx.Unlock()
 
 	stmt, args := toSql(sel)
-	fmt.Println(stmt)
+	//fmt.Println(stmt)
 
 	rows, err := images.DB.Queryx(stmt, args...)
 	if err != nil {
@@ -122,7 +123,7 @@ func (d Digikam) GetTags(sel sq.SelectBuilder) Tags {
 		if err != nil {
 			panic(err)
 		}
-		tags.Tags = append(tags.Tags, m)
+		tags = append(tags, m)
 	}
 
 	return tags
