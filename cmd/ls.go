@@ -13,9 +13,10 @@ var lsCmd = &cobra.Command{
 	Short: "A brief description of your command",
 	Run: func(cmd *cobra.Command, args []string) {
 		//r := db.Tags(16760, 17761)
-		r := db.Albums()
-		a := r[0].GetAlbums()
-		fmt.Printf("%+V\n", a)
+		r := db.Collections()
+		for _, a := range r[0].Albums().Names {
+			fmt.Printf("%+V\n", a)
+		}
 	},
 }
 

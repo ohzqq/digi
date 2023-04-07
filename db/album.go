@@ -3,11 +3,12 @@ package db
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 
 	sq "github.com/Masterminds/squirrel"
 )
 
-type AlbumRoot struct {
+type Collection struct {
 	ID   int
 	Path string `db:"path"`
 	Name string
@@ -22,7 +23,12 @@ type Album struct {
 	Base      string `db:"base"`
 }
 
-func Albums() []AlbumRoot {
+type Albums struct {
+	Albums []Album
+	Names  []string
+}
+
+func Collections() []Collection {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
@@ -42,9 +48,9 @@ func Albums() []AlbumRoot {
 	defer rows.Close()
 	images.DB.Unsafe()
 
-	var albums []AlbumRoot
+	var albums []Collection
 	for rows.Next() {
-		var m AlbumRoot
+		var m Collection
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
@@ -55,7 +61,7 @@ func Albums() []AlbumRoot {
 	return albums
 }
 
-func (r *AlbumRoot) GetAlbums() []Album {
+func (r *Collection) Albums() Albums {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
@@ -77,48 +83,15 @@ func (r *AlbumRoot) GetAlbums() []Album {
 	}
 	defer rows.Close()
 
-	var albums []Album
+	var albums Albums
 	for rows.Next() {
 		var m Album
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
 		}
-		albums = append(albums, m)
-	}
-	return albums
-}
-
-func AllAlbums() []Album {
-	images.mtx.Lock()
-	defer images.mtx.Unlock()
-
-	sel := sq.Select(
-		"AlbumRoots.specificPath as base",
-		"AlbumRoots.label as parent",
-		"Albums.id",
-		"Albums.relativePath as path",
-	).
-		From("Albums").
-		InnerJoin(`AlbumRoots ON AlbumRoots.id = Albums.albumRoot`)
-	stmt, args := toSql(sel)
-
-	rows, err := images.DB.Queryx(stmt, args...)
-	if err != nil {
-		fmt.Println(stmt)
-		log.Fatalf("error %v\n", err)
-	}
-	defer rows.Close()
-	images.DB.Unsafe()
-
-	var albums []Album
-	for rows.Next() {
-		var m Album
-		err := rows.StructScan(&m)
-		if err != nil {
-			panic(err)
-		}
-		albums = append(albums, m)
+		albums.Names = append(albums.Names, filepath.Base(m.Path))
+		albums.Albums = append(albums.Albums, m)
 	}
 	return albums
 }
