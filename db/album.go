@@ -80,7 +80,7 @@ func (a Albums) Images() Images {
 	for _, a := range a.Albums {
 		ids = append(ids, a.ID)
 	}
-	return GetImages(ids...)
+	return GetImagesByAlbum(ids...)
 }
 
 func (a Albums) Tags() Tags {
@@ -88,7 +88,20 @@ func (a Albums) Tags() Tags {
 	for _, img := range a.Images().Img {
 		ids = append(ids, img.ID)
 	}
-	return GetTags(ids...)
+	//return GetTagsByImage(ids...)
+	return groupImagesByTag(ids...)
+}
+
+func groupImagesByTag(ids ...int) Tags {
+	sel := sq.Select(
+		"Tags.name",
+		"GROUP_CONCAT(imageid) as images",
+	).
+		From("ImageTags").
+		InnerJoin("Tags ON tagid = Tags.id").
+		Where(whereImageId(ids...) + ` AND ` + tagsGt).
+		GroupBy("tagid")
+	return images.GetTags(sel)
 }
 
 func selectAlbums() sq.SelectBuilder {

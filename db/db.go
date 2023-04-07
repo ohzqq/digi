@@ -105,7 +105,7 @@ func (d Digikam) GetTags(sel sq.SelectBuilder) Tags {
 	defer images.mtx.Unlock()
 
 	stmt, args := toSql(sel)
-	//fmt.Println(stmt)
+	fmt.Println(stmt)
 
 	rows, err := images.DB.Queryx(stmt, args...)
 	if err != nil {

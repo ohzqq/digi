@@ -14,7 +14,7 @@ var lsCmd = &cobra.Command{
 		r := db.GetAlbums(393, 394)
 		for _, a := range r.Tags().Tags {
 			//fmt.Printf("%+V\n", a)
-			println(a.Name)
+			println(a.Images)
 		}
 	},
 }

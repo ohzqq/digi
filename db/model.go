@@ -20,6 +20,7 @@ type Tag struct {
 	ID     int
 	Parent int
 	Name   string
+	Images string
 }
 
 type Images struct {
@@ -30,7 +31,7 @@ type Tags struct {
 	Tags []Tag
 }
 
-func GetImages(a ...int) Images {
+func GetImagesByAlbum(a ...int) Images {
 	sel := selectImages()
 	if len(a) > 0 {
 		sel = sel.Where(sq.Eq{"Albums.id": a})
@@ -39,7 +40,7 @@ func GetImages(a ...int) Images {
 	return images.GetImages(sel)
 }
 
-func GetTags(ids ...int) Tags {
+func GetTagsByImage(ids ...int) Tags {
 	sel := sq.Select(
 		"id",
 		"Tags.pid as parent",
@@ -56,12 +57,9 @@ const tagsForImg = `Tags.Id IN (
 	FROM ImageTags
 	WHERE imageid IN (%s)
 )`
+const whereImgId = `imageid IN (%s)`
 
 func tagsForImgSql(id ...int) string {
-	var ids []string
-	for _, i := range id {
-		ids = append(ids, strconv.Itoa(i))
-	}
 	//sel := sq.Select("tagid").
 	//From("ImageTags").
 	//Where(sq.Eq{"imageid": id})
@@ -71,7 +69,19 @@ func tagsForImgSql(id ...int) string {
 	//}
 	//fmt.Println(sql)
 	//fmt.Println(args)
-	return fmt.Sprintf(tagsForImg, strings.Join(ids, ","))
+	return fmt.Sprintf(tagsForImg, joinIDs(id))
+}
+
+func whereImageId(id ...int) string {
+	return fmt.Sprintf(whereImgId, joinIDs(id))
+}
+
+func joinIDs(id []int) string {
+	var ids []string
+	for _, i := range id {
+		ids = append(ids, strconv.Itoa(i))
+	}
+	return strings.Join(ids, ",")
 }
 
 func tagsWhere(id ...int) string {
