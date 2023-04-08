@@ -16,6 +16,14 @@ var collectionsCmd = &cobra.Command{
 		ids := tui.ListCollections()
 		col := db.GetAlbumsByRoot(ids...)
 		fmt.Printf("%+V\n", len(col.Albums))
+		//tui.ListAlbums(col)
+		child := col.Children()
+		fmt.Printf("%+V\n", child)
+		//al := db.GetAlbumsById(1, 4, 416, 349)
+		//for _, a := range al.Names {
+		//fmt.Printf("%v\n", a)
+		//fmt.Printf("dir %v f %s\n is root %v\n first %v\n\n", d, f, root, first)
+		//}
 	},
 }
 

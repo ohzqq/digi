@@ -1,21 +1,32 @@
 package db
 
 import (
+	"path/filepath"
+	"strings"
+
 	sq "github.com/Masterminds/squirrel"
 )
 
 type Collection struct {
+	RootIDs   []int
+	RootNames []string
+	Roots     Albums
+	Albums
+}
+
+type Root struct {
 	ID         int
 	Path       string `db:"path"`
 	Name       string
 	Albums     []Album
-	AlbumNames []string
+	AlbumNames []map[string]string
 }
 
 type Album struct {
 	ID        int
 	AlbumRoot int `db:"-"`
 	Parent    string
+	Name      string
 	Path      string `db:"path"`
 	Label     string `db:"label"`
 	Base      string `db:"base"`
@@ -23,10 +34,10 @@ type Album struct {
 
 type Albums struct {
 	Albums []Album
-	Names  []string
+	Names  []map[string]string
 }
 
-func Collections() []Collection {
+func Collections() Collection {
 	sel := sq.Select(
 		"id",
 		"AlbumRoots.specificPath as path",
@@ -36,7 +47,7 @@ func Collections() []Collection {
 	return images.GetCollections(sel)
 }
 
-func (r *Collection) ListAlbums() *Collection {
+func (r *Root) ListAlbums() *Root {
 	sel := selectAlbums()
 	sel = sel.Where(sq.Eq{"albumRoot": r.ID})
 
@@ -46,31 +57,56 @@ func (r *Collection) ListAlbums() *Collection {
 	return r
 }
 
-func GetAlbumsByRoot(ids ...int) *Collection {
-	r := new(Collection)
+func (a Albums) Children() Collection {
+	var col Collection
+	for i, al := range a.Albums {
+		if _, ok := a.Names[i]["/"]; ok {
+			col.Roots.Albums = append(col.Roots.Albums, al)
+			col.Roots.Names = append(col.Roots.Names, a.Names[i])
+		}
+	}
+
+	for _, r := range col.Roots.Names {
+		var root string
+		if n, ok := r["/"]; ok {
+			root = n
+		}
+		for i, al := range a.Albums {
+			if _, ok := a.Names[i]["/"]; !ok {
+				d := strings.TrimPrefix(al.Path, "/"+root)
+				col.Albums.Albums = append(col.Albums.Albums, al)
+				col.Names = append(col.Names, map[string]string{d: filepath.Base(al.Path)})
+			}
+		}
+	}
+	return col
+}
+
+func GetAlbumsByRoot(ids ...int) *Albums {
+	r := new(Albums)
 
 	sel := selectAlbums()
 	sel = sel.Where(sq.Eq{"albumRoot": ids})
 
 	albums, names := images.GetAlbums(sel)
 	r.Albums = albums
-	r.AlbumNames = names
+	r.Names = names
 	return r
 }
 
-func GetAlbumsById(ids ...int) Collection {
+func GetAlbumsById(ids ...int) Albums {
 	sel := selectAlbums()
 	if len(ids) > 0 {
 		sel = sel.Where(sq.Eq{"Albums.id": ids})
 	}
 	albums, names := images.GetAlbums(sel)
-	return Collection{
-		Albums:     albums,
-		AlbumNames: names,
+	return Albums{
+		Albums: albums,
+		Names:  names,
 	}
 }
 
-func (a Collection) Images() Images {
+func (a Root) Images() Images {
 	var ids []int
 	for _, a := range a.Albums {
 		ids = append(ids, a.ID)
@@ -78,7 +114,7 @@ func (a Collection) Images() Images {
 	return GetImagesByAlbum(ids...)
 }
 
-func (a Collection) Tags() Tags {
+func (a Root) Tags() Tags {
 	var ids []int
 	for _, img := range a.Images() {
 		ids = append(ids, img.ID)

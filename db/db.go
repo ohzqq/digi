@@ -46,12 +46,14 @@ func Connect() {
 	images.DB = database
 }
 
-func (d Digikam) GetAlbums(sel sq.SelectBuilder) ([]Album, []string) {
+func (d Digikam) GetAlbums(sel sq.SelectBuilder) ([]Album, []map[string]string) {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
+	sel = sel.OrderBy("path")
+
 	stmt, args := toSql(sel)
-	//fmt.Println(stmt)
+	fmt.Println(stmt)
 
 	rows, err := images.DB.Queryx(stmt, args...)
 	if err != nil {
@@ -61,20 +63,24 @@ func (d Digikam) GetAlbums(sel sq.SelectBuilder) ([]Album, []string) {
 	defer rows.Close()
 
 	var albums []Album
-	var names []string
+	var names []map[string]string
 	for rows.Next() {
 		var m Album
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
 		}
-		names = append(names, filepath.Base(m.Path))
-		albums = append(albums, m)
+		d, f := filepath.Split(m.Path)
+		if f != "" {
+			names = append(names, map[string]string{d: f})
+			albums = append(albums, m)
+			m.Name = f
+		}
 	}
 	return albums, names
 }
 
-func (d Digikam) GetCollections(sel sq.SelectBuilder) []Collection {
+func (d Digikam) GetCollections(sel sq.SelectBuilder) Collection {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
@@ -88,14 +94,15 @@ func (d Digikam) GetCollections(sel sq.SelectBuilder) []Collection {
 	defer rows.Close()
 	images.DB.Unsafe()
 
-	var cols []Collection
+	var cols Collection
 	for rows.Next() {
-		var m Collection
+		var m Root
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
 		}
-		cols = append(cols, m)
+		cols.RootIDs = append(cols.RootIDs, m.ID)
+		cols.RootNames = append(cols.RootNames, m.Name)
 	}
 
 	return cols
