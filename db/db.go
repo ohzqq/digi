@@ -74,6 +74,33 @@ func (d Digikam) GetAlbums(sel sq.SelectBuilder) ([]Album, []string) {
 	return albums, names
 }
 
+func (d Digikam) GetCollections(sel sq.SelectBuilder) []Collection {
+	images.mtx.Lock()
+	defer images.mtx.Unlock()
+
+	stmt, args := toSql(sel)
+
+	rows, err := images.DB.Queryx(stmt, args...)
+	if err != nil {
+		fmt.Println(stmt)
+		log.Fatalf("error %v\n", err)
+	}
+	defer rows.Close()
+	images.DB.Unsafe()
+
+	var cols []Collection
+	for rows.Next() {
+		var m Collection
+		err := rows.StructScan(&m)
+		if err != nil {
+			panic(err)
+		}
+		cols = append(cols, m)
+	}
+
+	return cols
+}
+
 func (d Digikam) GetImages(sel sq.SelectBuilder) Images {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()

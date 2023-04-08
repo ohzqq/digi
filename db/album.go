@@ -1,9 +1,6 @@
 package db
 
 import (
-	"fmt"
-	"log"
-
 	sq "github.com/Masterminds/squirrel"
 )
 
@@ -30,41 +27,30 @@ type Albums struct {
 }
 
 func Collections() []Collection {
-	images.mtx.Lock()
-	defer images.mtx.Unlock()
-
 	sel := sq.Select(
 		"id",
 		"AlbumRoots.specificPath as path",
 		"AlbumRoots.label as name",
 	).
 		From("AlbumRoots")
-	stmt, args := toSql(sel)
-
-	rows, err := images.DB.Queryx(stmt, args...)
-	if err != nil {
-		fmt.Println(stmt)
-		log.Fatalf("error %v\n", err)
-	}
-	defer rows.Close()
-	images.DB.Unsafe()
-
-	var albums []Collection
-	for rows.Next() {
-		var m Collection
-		err := rows.StructScan(&m)
-		if err != nil {
-			panic(err)
-		}
-		albums = append(albums, m)
-	}
-
-	return albums
+	return images.GetCollections(sel)
 }
 
 func (r *Collection) ListAlbums() *Collection {
 	sel := selectAlbums()
 	sel = sel.Where(sq.Eq{"albumRoot": r.ID})
+
+	albums, names := images.GetAlbums(sel)
+	r.Albums = albums
+	r.AlbumNames = names
+	return r
+}
+
+func GetAlbumsByRoot(ids ...int) *Collection {
+	r := new(Collection)
+
+	sel := selectAlbums()
+	sel = sel.Where(sq.Eq{"albumRoot": ids})
 
 	albums, names := images.GetAlbums(sel)
 	r.Albums = albums
