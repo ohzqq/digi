@@ -76,7 +76,7 @@ func (d Digikam) GetAlbums(sel sq.SelectBuilder) ([]Album, []string) {
 	return albums, names
 }
 
-func (d Digikam) GetCollections(sel sq.SelectBuilder) Collection {
+func (d Digikam) GetRootAlbums(sel sq.SelectBuilder) []Root {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
@@ -90,18 +90,17 @@ func (d Digikam) GetCollections(sel sq.SelectBuilder) Collection {
 	defer rows.Close()
 	images.DB.Unsafe()
 
-	var cols Collection
+	var roots []Root
 	for rows.Next() {
 		var m Root
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
 		}
-		cols.RootIDs = append(cols.RootIDs, m.ID)
-		cols.RootNames = append(cols.RootNames, m.Name)
+		roots = append(roots, m)
 	}
 
-	return cols
+	return roots
 }
 
 func (d Digikam) GetImages(sel sq.SelectBuilder) Images {

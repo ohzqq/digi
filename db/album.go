@@ -5,11 +5,8 @@ import (
 )
 
 type Collection struct {
-	RootIDs   []int
-	RootNames []string
-	Roots     Albums
-	Albums    []Album
-	Names     []string
+	Albums []Album
+	Names  []string
 }
 
 type Root struct {
@@ -38,7 +35,14 @@ func Collections() Collection {
 		"AlbumRoots.label as name",
 	).
 		From("AlbumRoots")
-	return images.GetCollections(sel)
+	roots := images.GetRootAlbums(sel)
+	var col Collection
+	for _, root := range roots {
+		albums, _ := root.ListAlbums()
+		col.Albums = append(col.Albums, albums...)
+		col.Names = append(col.Names, root.Name)
+	}
+	return col
 }
 
 func (r *Root) ListAlbums() ([]Album, []string) {
@@ -51,12 +55,12 @@ func (r *Root) ListAlbums() ([]Album, []string) {
 
 func (a Albums) Children() Collection {
 	var col Collection
-	for i, al := range a.Albums {
-		if a.Names[i] == "/" {
-			col.Roots.Albums = append(col.Roots.Albums, al)
-			col.Roots.Names = append(col.Roots.Names, a.Names[i])
-		}
-	}
+	//for i, al := range a.Albums {
+	//  if a.Names[i] == "/" {
+	//    col.Roots.Albums = append(col.Roots.Albums, al)
+	//    col.Roots.Names = append(col.Roots.Names, a.Names[i])
+	//  }
+	//}
 
 	//for _, r := range col.Roots.Names {
 	//  var root string

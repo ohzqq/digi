@@ -35,12 +35,8 @@ func List(items []string) []int {
 
 func ListCollections() []int {
 	cols := db.Collections()
-	sel := List(cols.RootNames)
-	var ids []int
-	for _, id := range sel {
-		ids = append(ids, cols.RootIDs[id])
-	}
-	return ids
+	sel := List(cols.Names)
+	return sel
 }
 
 func ListAlbums(al *db.Albums) []int {

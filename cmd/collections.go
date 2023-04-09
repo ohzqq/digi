@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/ohzqq/digi/db"
-	"github.com/ohzqq/digi/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -13,12 +12,13 @@ var collectionsCmd = &cobra.Command{
 	Use:   "collections",
 	Short: "A brief description of your command",
 	Run: func(cmd *cobra.Command, args []string) {
-		ids := tui.ListCollections()
-		col := db.GetAlbumsByRoot(ids...)
+		//ids := tui.ListCollections()
+		//fmt.Println(ids)
+		col := db.Collections()
 		fmt.Printf("%+V\n", len(col.Albums))
 		//tui.ListAlbums(col)
-		child := col.Children()
-		fmt.Printf("%+V\n", child)
+		//child := col.Children()
+		//fmt.Printf("%+V\n", child)
 		//al := db.GetAlbumsById(1, 4, 416, 349)
 		//for _, a := range al.Names {
 		//fmt.Printf("%v\n", a)
