@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	sq "github.com/Masterminds/squirrel"
@@ -46,14 +47,14 @@ func Connect() {
 	images.DB = database
 }
 
-func (d Digikam) GetAlbums(sel sq.SelectBuilder) ([]Album, []string) {
+func (d Digikam) GetAlbums(sel sq.SelectBuilder) Albums {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
-	sel = sel.OrderBy("path")
+	sel = sel.OrderBy("parent")
 
 	stmt, args := toSql(sel)
-	fmt.Println(stmt)
+	//fmt.Println(stmt)
 
 	rows, err := images.DB.Queryx(stmt, args...)
 	if err != nil {
@@ -62,25 +63,33 @@ func (d Digikam) GetAlbums(sel sq.SelectBuilder) ([]Album, []string) {
 	}
 	defer rows.Close()
 
-	var albums []Album
-	var names []string
+	var albums Albums
 	for rows.Next() {
 		var m Album
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
 		}
-		names = append(names, filepath.Base(m.Path))
+		m.base = strings.Split(strings.Trim(m.Base, "/"), "/")
+		m.path = strings.Split(strings.Trim(m.Path, "/"), "/")
+		m.Depth = len(m.path) - len(m.base)
+		m.Name = filepath.Base(m.Path)
+		if m.Depth == 0 {
+			m.Name = m.Parent
+		}
 		albums = append(albums, m)
 	}
-	return albums, names
+	return albums
 }
 
-func (d Digikam) GetRootAlbums(sel sq.SelectBuilder) []Root {
+func (d Digikam) GetCollection(sel sq.SelectBuilder) Collection {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
+	sel = sel.OrderBy("parent")
+
 	stmt, args := toSql(sel)
+	//fmt.Println(stmt)
 
 	rows, err := images.DB.Queryx(stmt, args...)
 	if err != nil {
@@ -88,19 +97,24 @@ func (d Digikam) GetRootAlbums(sel sq.SelectBuilder) []Root {
 		log.Fatalf("error %v\n", err)
 	}
 	defer rows.Close()
-	images.DB.Unsafe()
 
-	var roots []Root
+	var col Collection
 	for rows.Next() {
-		var m Root
+		var m Album
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
 		}
-		roots = append(roots, m)
+		m.base = strings.Split(strings.Trim(m.Base, "/"), "/")
+		m.path = strings.Split(strings.Trim(m.Path, "/"), "/")
+		m.Depth = len(m.path) - len(m.base)
+		m.Name = filepath.Base(m.Path)
+		if m.Depth == 0 {
+			m.Name = m.Parent
+		}
+		col.albums = append(col.albums, m)
 	}
-
-	return roots
+	return col
 }
 
 func (d Digikam) GetImages(sel sq.SelectBuilder) Images {

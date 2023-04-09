@@ -5,7 +5,9 @@ import (
 )
 
 type Collection struct {
-	Albums []Album
+	Parent string
+	Name   string
+	albums Albums
 	Names  []string
 }
 
@@ -15,80 +17,65 @@ type Root struct {
 	Name string
 }
 
-type Album struct {
-	ID        int
-	AlbumRoot int `db:"-"`
-	Parent    string
-	Path      string `db:"path"`
-	Base      string `db:"base"`
+type Roots struct {
+	IDs   []int
+	Names []string
+	Paths []string
 }
 
-type Albums struct {
-	Albums []Album
-	Names  []string
+type Album struct {
+	ID     int
+	Depth  int
+	Parent string
+	Name   string
+	path   []string
+	base   []string
+	Dir    string
+	Path   string `db:"path"`
+	Base   string `db:"base"`
 }
+
+type Albums []Album
 
 func Collections() Collection {
-	sel := sq.Select(
-		"id",
-		"AlbumRoots.specificPath as path",
-		"AlbumRoots.label as name",
-	).
-		From("AlbumRoots")
-	roots := images.GetRootAlbums(sel)
-	var col Collection
-	for _, root := range roots {
-		albums, _ := root.ListAlbums()
-		col.Albums = append(col.Albums, albums...)
-		col.Names = append(col.Names, root.Name)
-	}
-	return col
-}
-
-func (r *Root) ListAlbums() ([]Album, []string) {
 	sel := selectAlbums()
-	sel = sel.Where(sq.Eq{"albumRoot": r.ID})
-
-	albums, names := images.GetAlbums(sel)
-	return albums, names
+	return images.GetCollection(sel)
 }
 
-func (a Albums) Children() Collection {
-	var col Collection
-	//for i, al := range a.Albums {
-	//  if a.Names[i] == "/" {
-	//    col.Roots.Albums = append(col.Roots.Albums, al)
-	//    col.Roots.Names = append(col.Roots.Names, a.Names[i])
-	//  }
-	//}
-
-	//for _, r := range col.Roots.Names {
-	//  var root string
-	//  if r == "/" {
-	//    root = r
-	//  }
-	//  for i, al := range a.Albums {
-	//    if a.Names[i] != "/" {
-	//      d := strings.TrimPrefix(al.Path, "/"+root)
-	//      col.Albums.Albums = append(col.Albums.Albums, al)
-	//      col.Names = append(col.Names, d)
-	//    }
-	//  }
-	//}
-
-	return col
+func (c Collection) Albums() Albums {
+	var albums Albums
+	for _, a := range c.albums {
+		if a.Depth == 0 {
+			albums = append(albums, a)
+		}
+	}
+	return albums
 }
 
-func GetAlbumsByRoot(ids ...int) *Albums {
-	r := new(Albums)
+func (albums Albums) Names() []string {
+	var names []string
+	for _, a := range albums {
+		names = append(names, a.Name)
+	}
+	return names
+}
 
+func (c Collection) OpenNode(album Album) Albums {
+	var albums Albums
+	for _, a := range c.albums {
+		if a.Base == album.Base {
+			if a.Depth == album.Depth+1 {
+				albums = append(albums, a)
+			}
+		}
+	}
+	return albums
+}
+
+func GetAlbumsByRoot(ids ...int) Albums {
 	sel := selectAlbums()
 	sel = sel.Where(sq.Eq{"albumRoot": ids})
-
-	albums, names := images.GetAlbums(sel)
-	r.Albums = albums
-	r.Names = names
-	return r
+	return images.GetAlbums(sel)
 }
 
 func GetAlbumsById(ids ...int) Albums {
@@ -96,11 +83,7 @@ func GetAlbumsById(ids ...int) Albums {
 	if len(ids) > 0 {
 		sel = sel.Where(sq.Eq{"Albums.id": ids})
 	}
-	albums, names := images.GetAlbums(sel)
-	return Albums{
-		Albums: albums,
-		Names:  names,
-	}
+	return images.GetAlbums(sel)
 }
 
 //func (a Root) Images() Images {
@@ -137,7 +120,7 @@ func selectAlbums() sq.SelectBuilder {
 		"AlbumRoots.specificPath as base",
 		"AlbumRoots.label as parent",
 		"Albums.id",
-		"Albums.relativePath as path",
+		"AlbumRoots.specificPath || Albums.relativePath as path",
 	).
 		From("Albums").
 		InnerJoin(`AlbumRoots ON AlbumRoots.id = Albums.albumRoot`)
