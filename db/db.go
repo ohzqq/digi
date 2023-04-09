@@ -46,7 +46,7 @@ func Connect() {
 	images.DB = database
 }
 
-func (d Digikam) GetAlbums(sel sq.SelectBuilder) ([]Album, []map[string]string) {
+func (d Digikam) GetAlbums(sel sq.SelectBuilder) ([]Album, []string) {
 	images.mtx.Lock()
 	defer images.mtx.Unlock()
 
@@ -63,19 +63,15 @@ func (d Digikam) GetAlbums(sel sq.SelectBuilder) ([]Album, []map[string]string) 
 	defer rows.Close()
 
 	var albums []Album
-	var names []map[string]string
+	var names []string
 	for rows.Next() {
 		var m Album
 		err := rows.StructScan(&m)
 		if err != nil {
 			panic(err)
 		}
-		d, f := filepath.Split(m.Path)
-		if f != "" {
-			names = append(names, map[string]string{d: f})
-			albums = append(albums, m)
-			m.Name = f
-		}
+		names = append(names, filepath.Base(m.Path))
+		albums = append(albums, m)
 	}
 	return albums, names
 }

@@ -46,7 +46,7 @@ func ListCollections() []int {
 func ListAlbums(al *db.Albums) []int {
 	opts := []props.Opt{
 		props.Height(10),
-		props.ChoiceMap(al.Names),
+		props.ChoiceSlice(al.Names),
 	}
 	prop, err := props.New(opts...)
 	if err != nil {
