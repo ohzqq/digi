@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/londek/reactea"
@@ -33,36 +34,32 @@ func List(items []string) []int {
 	return l.Selections()
 }
 
+type Model struct {
+	db.Collection
+	albums db.Albums
+}
+
+func New() *Model {
+	m := Model{
+		Collection: db.GetCollection(),
+	}
+	m.albums = m.Albums()
+	return &m
+}
+
+func Start() {
+	m := New()
+	sel := List(m.ListAlbums().Names())
+	fmt.Println(sel)
+}
+
 func ListCollections() []int {
-	cols := db.Collections()
-	sel := List(cols.Names)
+	cols := db.GetCollection()
+	sel := List(cols.Albums().Names())
 	return sel
 }
 
 func ListAlbums(al *db.Albums) []int {
-	opts := []props.Opt{
-		props.Height(10),
-		props.ChoiceSlice(al.Names),
-	}
-	prop, err := props.New(opts...)
-	if err != nil {
-		log.Fatal(err)
-	}
-	prop.NoLimit()
-	l := teacozy.New(
-		prop,
-		teacozy.WithChoice(),
-		teacozy.WithFilter(),
-	)
-
-	pro := reactea.NewProgram(l)
-	if err := pro.Start(); err != nil {
-		panic(err)
-	}
-
-	var ids []int
-	for _, id := range l.Selections() {
-		ids = append(ids, al.Albums[id].ID)
-	}
-	return ids
+	sel := List(al.Names())
+	return sel
 }

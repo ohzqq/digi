@@ -1,26 +1,13 @@
 package db
 
 import (
+	"strings"
+
 	sq "github.com/Masterminds/squirrel"
 )
 
 type Collection struct {
-	Parent string
-	Name   string
 	albums Albums
-	Names  []string
-}
-
-type Root struct {
-	ID   int
-	Path string `db:"path"`
-	Name string
-}
-
-type Roots struct {
-	IDs   []int
-	Names []string
-	Paths []string
 }
 
 type Album struct {
@@ -37,7 +24,7 @@ type Album struct {
 
 type Albums []Album
 
-func Collections() Collection {
+func GetCollection() Collection {
 	sel := selectAlbums()
 	return images.GetCollection(sel)
 }
@@ -52,10 +39,14 @@ func (c Collection) Albums() Albums {
 	return albums
 }
 
+func (c Collection) ListAlbums() Albums {
+	return c.albums
+}
+
 func (albums Albums) Names() []string {
 	var names []string
 	for _, a := range albums {
-		names = append(names, a.Name)
+		names = append(names, strings.Repeat(" ", a.Depth)+a.Name)
 	}
 	return names
 }
@@ -86,22 +77,22 @@ func GetAlbumsById(ids ...int) Albums {
 	return images.GetAlbums(sel)
 }
 
-//func (a Root) Images() Images {
-//  var ids []int
-//  for _, a := range a.Albums {
-//    ids = append(ids, a.ID)
-//  }
-//  return GetImagesByAlbum(ids...)
-//}
+func (albums Albums) Images() Images {
+	var ids []int
+	for _, a := range albums {
+		ids = append(ids, a.ID)
+	}
+	return GetImagesByAlbum(ids...)
+}
 
-//func (a Root) Tags() Tags {
-//  var ids []int
-//  for _, img := range a.Images() {
-//    ids = append(ids, img.ID)
-//  }
-//  //return GetTagsByImage(ids...)
-//  return groupImagesByTag(ids...)
-//}
+func (albums Albums) Tags() Tags {
+	var ids []int
+	for _, img := range albums.Images() {
+		ids = append(ids, img.ID)
+	}
+	//return GetTagsByImage(ids...)
+	return groupImagesByTag(ids...)
+}
 
 func groupImagesByTag(ids ...int) Tags {
 	sel := sq.Select(

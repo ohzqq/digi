@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/ohzqq/digi/db"
+	"github.com/ohzqq/digi/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -13,9 +11,9 @@ var collectionsCmd = &cobra.Command{
 	Short: "A brief description of your command",
 	Run: func(cmd *cobra.Command, args []string) {
 		//ids := tui.ListCollections()
-		//fmt.Println(ids)
-		col := db.Collections()
-		fmt.Printf("%+V\n", len(col.Albums()))
+		tui.Start()
+
+		//fmt.Println(sel)
 		//tui.ListAlbums(col)
 		//child := col.Albums()
 		//node := col.OpenNode(child[0])
@@ -23,7 +21,6 @@ var collectionsCmd = &cobra.Command{
 		//other := col.GetAlbums(child.Nodes()...)
 		//fmt.Printf("%+v\n", other.Nodes())
 		//otherO := col.GetAlbums(other.Nodes()...)
-		//fmt.Printf("%+v\n", otherO.Nodes())
 		//al := db.GetAlbumsById(1, 4, 416, 349)
 		//for _, a := range al.Names {
 		//fmt.Printf("%v\n", a)
